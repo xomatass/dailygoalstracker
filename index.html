@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Goals Tracker Pro</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; padding: 0; }
+    
+    /* View Toggling */
+    #onboarding-view, #dashboard-view { transition: opacity 0.3s ease; }
+    .hidden-view { display: none !important; opacity: 0; }
+    .active-view { display: block !important; opacity: 1; animation: fadeIn 0.5s ease forwards; }
+    
+    /* Step Toggling */
+    .step-content { display: none; opacity: 0; }
+    .step-content.active { display: block; opacity: 1; animation: fadeIn 0.4s ease forwards; }
+    
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Custom Scrollbar for tables/lists */
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 8px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    
+    /* Sticky Table Headers & Columns */
+    .table-wrapper { max-height: 60vh; overflow-y: auto; overflow-x: auto; }
+    .sticky-col-1 { position: sticky; left: 0; background-color: #ffffff; z-index: 10; border-right: 1px solid #e2e8f0; }
+    .sticky-col-2 { position: sticky; left: 80px; background-color: #ffffff; z-index: 10; border-right: 2px solid #e2e8f0; }
+    .sticky-header { position: sticky; top: 0; background-color: #f8fafc; z-index: 20; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    .sticky-corner-1 { position: sticky; top: 0; left: 0; background-color: #f8fafc; z-index: 30; border-right: 1px solid #e2e8f0; }
+    .sticky-corner-2 { position: sticky; top: 0; left: 80px; background-color: #f8fafc; z-index: 30; border-right: 2px solid #e2e8f0; }
+
+    /* Chart Containers */
+    .chart-container { position: relative; height: 300px; width: 100%; }
+  </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col">
+
+  <div id="onboarding-view" class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950">
+    <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg p-6 sm:p-8 relative overflow-hidden">
+      
+      <!-- Stepper Progress -->
+      <div id="progress-container" class="flex items-center justify-between mb-8 px-2">
+        <div id="dot-1" class="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-md transition-colors">1</div>
+        <div class="flex-1 h-1.5 bg-slate-100 mx-2 rounded-full overflow-hidden"><div id="bar-1" class="h-full bg-indigo-600 w-0 transition-all duration-300"></div></div>
+        <div id="dot-2" class="w-10 h-10 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center font-bold text-sm transition-colors">2</div>
+        <div class="flex-1 h-1.5 bg-slate-100 mx-2 rounded-full overflow-hidden"><div id="bar-2" class="h-full bg-indigo-600 w-0 transition-all duration-300"></div></div>
+        <div id="dot-3" class="w-10 h-10 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center font-bold text-sm transition-colors">3</div>
+      </div>
+
+      <!-- Step 1: Account -->
+      <div id="step-1" class="step-content active">
+        <div class="mb-6">
+          <span class="inline-block px-3 py-1 bg-indigo-50 text-indigo-600 font-semibold text-xs rounded-full mb-2" id="ui-step1-badge">Step 1 of 3</span>
+          <h2 class="text-2xl font-extrabold tracking-tight" id="ui-step1-title">Create Account 🚀</h2>
+          <p class="text-slate-500 text-sm mt-1" id="ui-step1-sub">Start tracking your daily goals easily.</p>
+        </div>
+        <div class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Email</label>
+            <input type="email" id="userEmail" placeholder="yourname@example.com" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1" id="ui-step1-pass">Password</label>
+            <input type="password" id="userPassword" placeholder="••••••••" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all">
+          </div>
+          <button type="button" onclick="goToStep(2)" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3.5 rounded-xl font-bold shadow-lg transition-all mt-2" id="ui-step1-btn">
+            Next: Language ➡️
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: Language -->
+      <div id="step-2" class="step-content">
+        <div class="mb-6">
+          <span class="inline-block px-3 py-1 bg-indigo-50 text-indigo-600 font-semibold text-xs rounded-full mb-2" id="ui-step2-badge">Step 2 of 3</span>
+          <h2 class="text-2xl font-extrabold tracking-tight" id="ui-step2-title">Select Language 🌐</h2>
+          <p class="text-slate-500 text-sm mt-1" id="ui-step2-sub">Choose your preferred interface language.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-4 mb-8">
+          <button type="button" onclick="setLanguage('en')" id="lang-btn-en" class="p-5 border-2 border-indigo-600 rounded-2xl flex flex-col items-center justify-center bg-indigo-50/50 transition-all">
+            <span class="text-4xl mb-2">🇬🇧</span>
+            <span class="font-bold text-sm">English</span>
+          </button>
+          <button type="button" onclick="setLanguage('gr')" id="lang-btn-gr" class="p-5 border-2 border-slate-200 rounded-2xl flex flex-col items-center justify-center hover:border-slate-300 transition-all">
+            <span class="text-4xl mb-2">🇬🇷</span>
+            <span class="font-bold text-sm">Ελληνικά</span>
+          </button>
+        </div>
+        <div class="flex gap-3">
+          <button type="button" onclick="goToStep(1)" class="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3.5 rounded-xl font-bold transition" id="ui-step2-back">⬅️ Back</button>
+          <button type="button" onclick="goToStep(3)" class="w-2/3 bg-indigo-600 hover:bg-indigo-700 text-white py-3.5 rounded-xl font-bold shadow-lg transition" id="ui-step2-btn">Next: Goals ➡️</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Goals & Period -->
+      <div id="step-3" class="step-content">
+        <div class="mb-5">
+          <span class="inline-block px-3 py-1 bg-indigo-50 text-indigo-600 font-semibold text-xs rounded-full mb-2" id="ui-step3-badge">Step 3 of 3</span>
+          <h2 class="text-2xl font-extrabold tracking-tight" id="ui-step3-title">Period & Goals 🎯</h2>
+          <p class="text-slate-500 text-sm mt-1" id="ui-step3-sub">Customize your tracking timeline and habits.</p>
+        </div>
+
+        <div class="space-y-3 mb-5 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-600 mb-1" id="ui-step3-start">📅 Start Date</label>
+              <input type="date" id="obStartDate" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold uppercase text-slate-600 mb-1" id="ui-step3-end">🏁 End Date</label>
+              <input type="date" id="obEndDate" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500">
+            </div>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 pt-1">
+            <button type="button" onclick="addDaysToOB(30)" class="text-[11px] bg-white border border-slate-200 hover:text-indigo-600 px-2.5 py-1 rounded-lg font-semibold transition shadow-sm" id="ui-preset-30">+30 Days</button>
+            <button type="button" onclick="addDaysToOB(90)" class="text-[11px] bg-white border border-slate-200 hover:text-indigo-600 px-2.5 py-1 rounded-lg font-semibold transition shadow-sm" id="ui-preset-90">+90 Days</button>
+            <button type="button" onclick="setOBEndOfYear()" class="text-[11px] bg-white border border-slate-200 hover:text-indigo-600 px-2.5 py-1 rounded-lg font-semibold transition shadow-sm" id="ui-preset-eoy">End of Year</button>
+          </div>
+        </div>
+
+        <div class="mb-6">
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-2" id="ui-step3-cat">Goal Categories</label>
+          <div id="ob-goals-list" class="space-y-2 mb-3 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
+            <!-- Dynamically populated -->
+          </div>
+          <div class="flex gap-2">
+            <input type="text" id="obNewGoalInput" placeholder="New goal (e.g. Gym)..." class="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
+            <button type="button" onclick="addOBGoal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-xl text-sm font-bold transition" id="ui-step3-add">➕ Add</button>
+          </div>
+        </div>
+
+        <div class="flex gap-3">
+          <button type="button" onclick="goToStep(2)" class="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 py-3.5 rounded-xl font-bold transition" id="ui-step3-back">⬅️ Back</button>
+          <button type="button" onclick="finishOnboarding()" class="w-2/3 bg-emerald-600 hover:bg-emerald-700 text-white py-3.5 rounded-xl font-bold shadow-lg transition" id="ui-step3-btn">🚀 Start!</button>
+        </div>
+      </div>
+
+      <!-- Congrats Screen -->
+      <div id="step-congrats" class="step-content text-center py-6">
+        <div class="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-5 shadow-inner">
+          <span class="text-5xl animate-bounce">🎉</span>
+        </div>
+        <h2 class="text-3xl font-extrabold tracking-tight mb-3" id="ui-congrats-title">Congratulations!</h2>
+        <p class="text-slate-500 text-sm mb-8" id="ui-congrats-sub">Your account is ready. Let's hit those goals.</p>
+        <button type="button" onclick="enterDashboard()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl font-bold text-base shadow-xl transition transform hover:scale-[1.02]" id="ui-congrats-btn">
+          📊 Go to Dashboard
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="dashboard-view" class="hidden-view flex-1 w-full flex flex-col">
+    <!-- Navbar -->
+    <nav class="bg-white border-b border-slate-200 px-4 sm:px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-sm">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-md">🎯</div>
+        <div>
+          <h1 class="font-extrabold text-lg leading-tight text-slate-800" id="dash-title">Goal Tracker</h1>
+          <p class="text-xs text-slate-500 font-medium" id="dash-user">user@example.com</p>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="toggleLang()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 rounded-lg text-sm font-bold text-slate-700 transition" id="dash-lang-btn">🇬🇷 EL</button>
+        <button onclick="logout()" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-sm font-bold transition" id="dash-logout">Logout</button>
+      </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto w-full p-4 sm:p-6 lg:p-8 space-y-6 flex-1">
+      
+      <!-- Top Actions / Status Banner -->
+      <div class="flex flex-col sm:flex-row justify-between items-center bg-white border border-slate-200 p-4 rounded-2xl gap-4 shadow-sm">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-xl">🗓️</div>
+          <div>
+            <h3 class="font-bold text-slate-800 text-sm" id="dash-period-title">Tracking Period</h3>
+            <p class="text-sm font-medium text-indigo-600" id="dash-period-dates">...</p>
+          </div>
+        </div>
+        <div class="flex flex-wrap justify-center gap-2">
+          <button onclick="extendPeriod(30)" class="bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 text-indigo-700 px-4 py-2 rounded-xl text-sm font-bold transition" id="dash-btn-extend">Extend +30 Days</button>
+          <button onclick="startOver()" class="bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 px-4 py-2 rounded-xl text-sm font-bold transition" id="dash-btn-reset">Start Over</button>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider" id="kpi-title-rate">Success Rate</p>
+            <h3 class="text-4xl font-extrabold text-indigo-600 mt-1" id="kpi-rate">0%</h3>
+          </div>
+          <div class="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-3xl shadow-inner">🏆</div>
+        </div>
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider" id="kpi-title-comp">Completed Goals</p>
+            <h3 class="text-4xl font-extrabold text-emerald-500 mt-1" id="kpi-completed">0</h3>
+          </div>
+          <div class="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-3xl shadow-inner">✅</div>
+        </div>
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider" id="kpi-title-days">Days Tracked</p>
+            <h3 class="text-4xl font-extrabold text-blue-500 mt-1" id="kpi-days">0</h3>
+          </div>
+          <div class="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-3xl shadow-inner">📅</div>
+        </div>
+      </div>
+
+      <!-- Charts -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+          <h3 class="text-lg font-bold text-slate-800 mb-4" id="chart-title-line">Success Trend 📈</h3>
+          <div class="chart-container"><canvas id="lineChart"></canvas></div>
+        </div>
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col">
+          <h3 class="text-lg font-bold text-slate-800 mb-4" id="chart-title-pie">Distribution 🥧</h3>
+          <div class="chart-container flex-1"><canvas id="pieChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Checklist Table -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col overflow-hidden">
+        <div class="p-5 border-b border-slate-200 bg-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 z-40">
+          <div>
+            <h3 class="text-xl font-bold text-slate-800 flex items-center gap-2" id="table-title">Daily Checklist 📝</h3>
+            <p class="text-sm text-slate-500 mt-1" id="table-sub">Log your progress every day.</p>
+          </div>
+          <div class="flex gap-2 w-full sm:w-auto">
+            <input type="text" id="dashNewGoalInput" placeholder="Add new goal..." class="flex-1 sm:w-48 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500 transition-all">
+            <button onclick="addDashboardGoal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-sm transition whitespace-nowrap" id="dash-btn-add">➕ Add</button>
+          </div>
+        </div>
+        <div class="table-wrapper custom-scrollbar w-full relative">
+          <table class="w-full text-left border-collapse min-w-max">
+            <thead id="table-head"></thead>
+            <tbody id="table-body" class="text-sm bg-white"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // --- Dictionary / i18n ---
+    const dict = {
+      en: {
+        step1Badge: "Step 1 of 3", step1Title: "Create Account 🚀", step1Sub: "Start tracking your daily goals easily.", step1Pass: "Password", step1Btn: "Next: Language ➡️",
+        step2Badge: "Step 2 of 3", step2Title: "Select Language 🌐", step2Sub: "Choose your preferred interface language.", step2Back: "⬅️ Back", step2Btn: "Next: Goals ➡️",
+        step3Badge: "Step 3 of 3", step3Title: "Period & Goals 🎯", step3Sub: "Customize your tracking timeline and habits.", step3Start: "📅 Start Date", step3End: "🏁 End Date", step3Cat: "Goal Categories", step3Add: "➕ Add", step3Back: "⬅️ Back", step3Btn: "🚀 Start!",
+        preset30: "+30 Days", preset90: "+90 Days", presetEoy: "End of Year",
+        congratsTitle: "Congratulations!", congratsSub: "Your account is ready. Let's hit those goals.", congratsBtn: "📊 Go to Dashboard",
+        dashTitle: "Goal Tracker", dashLogout: "Logout",
+        dashPeriod: "Tracking Period", btnExtend: "Extend +30 Days", btnReset: "Start Over",
+        kpiRate: "Success Rate", kpiComp: "Completed Goals", kpiDays: "Days Tracked",
+        chartLine: "Success Trend 📈", chartPie: "Distribution 🥧", chartLabelYes: "Success (✅)", chartLabelNo: "Failed (❌)",
+        tableTitle: "Daily Checklist 📝", tableSub: "Log your progress every day.",
+        thDate: "Date", thDay: "Day", thComp: "Completed", thTotal: "Total", thRate: "Rate",
+        phNewGoal: "Add new goal...",
+        alerts: {
+          reqEmail: "Please enter a valid email.", reqPass: "Please enter a password.", reqDates: "End date must be after start date.", reqGoals: "Please select at least 1 goal.",
+          emptyGoal: "Goal name cannot be empty.", resetWarn: "Are you sure you want to delete all data and start over?"
+        }
+      },
+      gr: {
+        step1Badge: "Βήμα 1 από 3", step1Title: "Δημιουργία Λογαριασμού 🚀", step1Sub: "Ξεκίνα να παρακολουθείς τους στόχους σου.", step1Pass: "Κωδικός", step1Btn: "Επόμενο: Γλώσσα ➡️",
+        step2Badge: "Βήμα 2 από 3", step2Title: "Επιλογή Γλώσσας 🌐", step2Sub: "Επίλεξε τη γλώσσα του περιβάλλοντος.", step2Back: "⬅️ Πίσω", step2Btn: "Επόμενο: Στόχοι ➡️",
+        step3Badge: "Βήμα 3 από 3", step3Title: "Περίοδος & Στόχοι 🎯", step3Sub: "Προσάρμοσε το χρονικό διάστημα και τις συνήθειες.", step3Start: "📅 Ημ. Έναρξης", step3End: "🏁 Ημ. Λήξης", step3Cat: "Κατηγορίες Στόχων", step3Add: "➕ Προσθήκη", step3Back: "⬅️ Πίσω", step3Btn: "🚀 Έναρξη!",
+        preset30: "+30 Ημέρες", preset90: "+90 Ημέρες", presetEoy: "Τέλος Έτους",
+        congratsTitle: "Συγχαρητήρια!", congratsSub: "Ο λογαριασμός είναι έτοιμος. Καλή αρχή!", congratsBtn: "📊 Μετάβαση στο Dashboard",
+        dashTitle: "Παρακολούθηση Στόχων", dashLogout: "Αποσύνδεση",
+        dashPeriod: "Περίοδος Παρακολούθησης", btnExtend: "Επέκταση +30 Ημ.", btnReset: "Επανεκκίνηση",
+        kpiRate: "Ποσοστο Επιτυχιας", kpiComp: "Ολοκληρωμενοι Στοχοι", kpiDays: "Ημερες Παρακολουθησης",
+        chartLine: "Πορεία Επιτυχίας 📈", chartPie: "Κατανομή 🥧", chartLabelYes: "Επιτυχία (✅)", chartLabelNo: "Αποτυχία (❌)",
+        tableTitle: "Ημερήσιο Checklist 📝", tableSub: "Κατάγραψε την πρόοδό σου.",
+        thDate: "Ημερομηνία", thDay: "Ημέρα", thComp: "Ολοκλ.", thTotal: "Σύνολο", thRate: "Ποσοστό",
+        phNewGoal: "Νέος στόχος...",
+        alerts: {
+          reqEmail: "Παρακαλώ εισάγετε έγκυρο email.", reqPass: "Παρακαλώ εισάγετε κωδικό.", reqDates: "Η λήξη πρέπει να είναι μετά την έναρξη.", reqGoals: "Επιλέξτε τουλάχιστον 1 στόχο.",
+          emptyGoal: "Το όνομα του στόχου δεν μπορεί να είναι κενό.", resetWarn: "Σίγουρα θέλετε να διαγράψετε τα πάντα και να ξεκινήσετε από την αρχή;"
+        }
+      }
+    };
+
+    // --- State Management ---
+    let state = {
+      isLoggedIn: false,
+      lang: 'en',
+      email: '',
+      startDate: '',
+      endDate: '',
+      goals: [], // { id, name, emoji }
+      logs: {}   // { 'YYYY-MM-DD': { goalId: 'YES' | 'NO' | 'NA' } }
+    };
+
+    let lineChart = null;
+    let pieChart = null;
+
+    function saveState() { localStorage.setItem('dailyGoalsAppPro', JSON.stringify(state)); }
+    function loadState() {
+      const saved = localStorage.getItem('dailyGoalsAppPro');
+      if (saved) { state = { ...state, ...JSON.parse(saved) }; }
+    }
+
+    function applyLanguage(lang) {
+      state.lang = lang;
+      const t = dict[lang];
+      document.documentElement.lang = lang;
+      
+      // Onboarding Strings
+      document.getElementById('ui-step1-badge').innerText = t.step1Badge;
+      document.getElementById('ui-step1-title').innerText = t.step1Title;
+      document.getElementById('ui-step1-sub').innerText = t.step1Sub;
+      document.getElementById('ui-step1-pass').innerText = t.step1Pass;
+      document.getElementById('ui-step1-btn').innerText = t.step1Btn;
+
+      document.getElementById('ui-step2-badge').innerText = t.step2Badge;
+      document.getElementById('ui-step2-title').innerText = t.step2Title;
+      document.getElementById('ui-step2-sub').innerText = t.step2Sub;
+      document.getElementById('ui-step2-back').innerText = t.step2Back;
+      document.getElementById('ui-step2-btn').innerText = t.step2Btn;
+
+      document.getElementById('ui-step3-badge').innerText = t.step3Badge;
+      document.getElementById('ui-step3-title').innerText = t.step3Title;
+      document.getElementById('ui-step3-sub').innerText = t.step3Sub;
+      document.getElementById('ui-step3-start').innerText = t.step3Start;
+      document.getElementById('ui-step3-end').innerText = t.step3End;
+      document.getElementById('ui-step3-cat').innerText = t.step3Cat;
+      document.getElementById('ui-step3-add').innerText = t.step3Add;
+      document.getElementById('ui-step3-back').innerText = t.step3Back;
+      document.getElementById('ui-step3-btn').innerText = t.step3Btn;
+      
+      document.getElementById('ui-preset-30').innerText = t.preset30;
+      document.getElementById('ui-preset-90').innerText = t.preset90;
+      document.getElementById('ui-preset-eoy').innerText = t.presetEoy;
+
+      document.getElementById('ui-congrats-title').innerText = t.congratsTitle;
+      document.getElementById('ui-congrats-sub').innerText = t.congratsSub;
+      document.getElementById('ui-congrats-btn').innerText = t.congratsBtn;
+      document.getElementById('obNewGoalInput').placeholder = t.phNewGoal;
+
+      // Dashboard Strings
+      document.getElementById('dash-title').innerText = t.dashTitle;
+      document.getElementById('dash-logout').innerText = t.dashLogout;
+      document.getElementById('dash-period-title').innerText = t.dashPeriod;
+      document.getElementById('dash-btn-extend').innerText = t.btnExtend;
+      document.getElementById('dash-btn-reset').innerText = t.btnReset;
+      
+      document.getElementById('kpi-title-rate').innerText = t.kpiRate;
+      document.getElementById('kpi-title-comp').innerText = t.kpiComp;
+      document.getElementById('kpi-title-days').innerText = t.kpiDays;
+      
+      document.getElementById('chart-title-line').innerText = t.chartLine;
+      document.getElementById('chart-title-pie').innerText = t.chartPie;
+      
+      document.getElementById('table-title').innerText = t.tableTitle;
+      document.getElementById('table-sub').innerText = t.tableSub;
+      document.getElementById('dashNewGoalInput').placeholder = t.phNewGoal;
+      document.getElementById('dash-btn-add').innerText = t.step3Add;
+      
+      document.getElementById('dash-lang-btn').innerText = lang === 'en' ? '🇬🇷 EL' : '🇬🇧 EN';
+
+      // Visual Language Buttons
+      const eBtn = document.getElementById('lang-btn-en');
+      const gBtn = document.getElementById('lang-btn-gr');
+      if (lang === 'en') {
+        eBtn.className = "p-5 border-2 border-indigo-600 rounded-2xl flex flex-col items-center justify-center bg-indigo-50/50 transition-all";
+        gBtn.className = "p-5 border-2 border-slate-200 rounded-2xl flex flex-col items-center justify-center hover:border-slate-300 transition-all";
+      } else {
+        gBtn.className = "p-5 border-2 border-indigo-600 rounded-2xl flex flex-col items-center justify-center bg-indigo-50/50 transition-all";
+        eBtn.className = "p-5 border-2 border-slate-200 rounded-2xl flex flex-col items-center justify-center hover:border-slate-300 transition-all";
+      }
+
+      if (state.isLoggedIn && !document.getElementById('dashboard-view').classList.contains('hidden-view')) {
+        renderTable();
+        updateDashboardStats();
+      }
+    }
+
+    function toggleLang() {
+      applyLanguage(state.lang === 'en' ? 'gr' : 'en');
+      saveState();
+    }
+
+    function t(key) { return dict[state.lang][key]; }
+
+    function initApp() {
+      loadState();
+      Chart.defaults.font.family = 'Inter';
+      
+      if (state.isLoggedIn) {
+        // Skip directly to dashboard if logged in
+        applyLanguage(state.lang);
+        document.getElementById('onboarding-view').className = 'hidden-view';
+        document.getElementById('dashboard-view').className = 'active-view flex-1 w-full flex flex-col';
+        // Initialize dashboard safely after view is visible
+        setTimeout(() => { initDashboard(); }, 50);
+      } else {
+        // Setup Onboarding Defaults
+        const today = new Date();
+        document.getElementById('obStartDate').value = today.toISOString().split('T')[0];
+        addDaysToOB(30);
+        
+        const defGoals = [
+          { name: 'Diet', emoji: '🥗' }, { name: 'University', emoji: '🎓' },
+          { name: 'Water Intake', emoji: '💧' }, { name: 'Brush teeth', emoji: '🪥' }
+        ];
+        const list = document.getElementById('ob-goals-list');
+        list.innerHTML = '';
+        defGoals.forEach(g => {
+          list.innerHTML += `<label class="flex items-center justify-between p-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl cursor-pointer shadow-sm">
+            <div class="flex items-center gap-3"><span class="text-xl">${g.emoji}</span><span class="text-sm font-bold goal-name">${g.name}</span></div>
+            <input type="checkbox" checked class="ob-goal-cb w-5 h-5 text-indigo-600 rounded-md">
+          </label>`;
+        });
+
+        applyLanguage(state.lang);
+      }
+    }
+
+    // --- Onboarding Logic ---
+    function goToStep(step) {
+      if (step === 2) {
+        const email = document.getElementById('userEmail').value;
+        const pass = document.getElementById('userPassword').value;
+        if (!email || !email.includes('@')) return alert(t('alerts').reqEmail);
+        if (!pass) return alert(t('alerts').reqPass);
+        state.email = email;
+      }
+      
+      document.getElementById('progress-container').style.display = 'flex';
+      document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+      setTimeout(() => document.getElementById(`step-${step}`).classList.add('active'), 10);
+      
+      for(let i = 1; i <= 3; i++) {
+        const dot = document.getElementById(`dot-${i}`);
+        if(i <= step) { dot.classList.add('bg-indigo-600', 'text-white'); dot.classList.remove('bg-slate-100', 'text-slate-500'); }
+        else { dot.classList.remove('bg-indigo-600', 'text-white'); dot.classList.add('bg-slate-100', 'text-slate-500'); }
+      }
+      document.getElementById('bar-1').style.width = step > 1 ? '100%' : '0%';
+      document.getElementById('bar-2').style.width = step > 2 ? '100%' : '0%';
+    }
+
+    function setLanguage(l) { applyLanguage(l); }
+    
+    function addDaysToOB(days) {
+      const st = document.getElementById('obStartDate').value;
+      if(!st) return;
+      const d = new Date(st);
+      d.setDate(d.getDate() + days);
+      document.getElementById('obEndDate').value = d.toISOString().split('T')[0];
+    }
+    
+    function setOBEndOfYear() {
+      const st = document.getElementById('obStartDate').value;
+      if(!st) return;
+      const d = new Date(st);
+      document.getElementById('obEndDate').value = `${d.getFullYear()}-12-31`;
+    }
+
+    function detectEmoji(text) {
+      const lower = text.toLowerCase();
+      if (lower.match(/gym|fit|workout|γυμναστικ/)) return '🏋️';
+      if (lower.match(/read|book|διαβασμ|βιβλι/)) return '📚';
+      if (lower.match(/run|jog|τρεξιμ/)) return '🏃';
+      if (lower.match(/sleep|bed|υπν/)) return '😴';
+      if (lower.match(/meditat|yoga|λογισμ/)) return '🧘';
+      if (lower.match(/walk|βολτ/)) return '🚶';
+      if (lower.match(/money|sav|trade|αποταμιευσ/)) return '💰';
+      if (lower.match(/code|program|προγραμμ/)) return '💻';
+      if (lower.match(/water|drink|νερο/)) return '💧';
+      if (lower.match(/eat|diet|food|διατροφ/)) return '🥗';
+      return '🎯';
+    }
+
+    function addOBGoal() {
+      const input = document.getElementById('obNewGoalInput');
+      const text = input.value.trim();
+      if (!text) return alert(t('alerts').emptyGoal);
+      
+      const emoji = detectEmoji(text);
+      const list = document.getElementById('ob-goals-list');
+      list.innerHTML += `<label class="flex items-center justify-between p-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl cursor-pointer shadow-sm fade-enter fade-enter-active">
+        <div class="flex items-center gap-3"><span class="text-xl">${emoji}</span><span class="text-sm font-bold goal-name">${text}</span></div>
+        <input type="checkbox" checked class="ob-goal-cb w-5 h-5 text-indigo-600 rounded-md">
+      </label>`;
+      input.value = '';
+      list.scrollTop = list.scrollHeight;
+    }
+
+    function finishOnboarding() {
+      const sD = document.getElementById('obStartDate').value;
+      const eD = document.getElementById('obEndDate').value;
+      if (!sD || !eD || new Date(sD) > new Date(eD)) return alert(t('alerts').reqDates);
+
+      let selectedGoals = [];
+      document.querySelectorAll('#ob-goals-list label').forEach((lbl, idx) => {
+        if (lbl.querySelector('.ob-goal-cb').checked) {
+          selectedGoals.push({
+            id: 'g_' + Date.now() + '_' + idx,
+            emoji: lbl.querySelector('span:first-child').innerText,
+            name: lbl.querySelector('.goal-name').innerText
+          });
+        }
+      });
+
+      if (selectedGoals.length === 0) return alert(t('alerts').reqGoals);
+
+      state.startDate = sD;
+      state.endDate = eD;
+      state.goals = selectedGoals;
+      state.logs = {};
+      state.isLoggedIn = true;
+      saveState();
+
+      document.getElementById('progress-container').style.display = 'none';
+      document.querySelectorAll('.step-content').forEach(el => el.classList.remove('active'));
+      setTimeout(() => document.getElementById('step-congrats').classList.add('active'), 10);
+    }
+
+    function enterDashboard() {
+      // 1. Hide onboarding completely
+      document.getElementById('onboarding-view').className = 'hidden-view';
+      // 2. Show dashboard as block
+      document.getElementById('dashboard-view').className = 'active-view flex-1 w-full flex flex-col';
+      
+      // 3. Wait for browser to apply display: block, then initialize charts to prevent canvas sizing errors
+      setTimeout(() => {
+        initDashboard();
+      }, 50);
+    }
+
+    function initDashboard() {
+      document.getElementById('dash-user').innerText = state.email;
+      const locale = state.lang === 'gr' ? 'el-GR' : 'en-US';
+      const fStart = new Date(state.startDate).toLocaleDateString(locale, { day:'numeric', month:'short', year:'numeric'});
+      const fEnd = new Date(state.endDate).toLocaleDateString(locale, { day:'numeric', month:'short', year:'numeric'});
+      document.getElementById('dash-period-dates').innerText = `${fStart} - ${fEnd}`;
+
+      renderTable();
+      initCharts();
+      updateDashboardStats();
+    }
+
+    function generateDateRange() {
+      let dates = [];
+      let current = new Date(state.startDate);
+      let end = new Date(state.endDate);
+      while (current <= end) {
+        dates.push(current.toISOString().split('T')[0]);
+        current.setDate(current.getDate() + 1);
+      }
+      return dates;
+    }
+
+    function renderTable() {
+      const thead = document.getElementById('table-head');
+      const tbody = document.getElementById('table-body');
+      
+      let headerHTML = `<tr class="border-b-2 border-slate-200">
+        <th class="sticky-corner-1 p-4 text-xs font-bold uppercase tracking-wider text-slate-500 min-w-[80px]">${t('thDate')}</th>
+        <th class="sticky-corner-2 p-4 text-xs font-bold uppercase tracking-wider text-slate-500 min-w-[60px]">${t('thDay')}</th>`;
+      
+      state.goals.forEach(g => {
+        headerHTML += `<th class="sticky-header p-4 text-sm font-bold text-slate-800 text-center min-w-[150px] bg-white border-l border-slate-200 shadow-sm">
+          <span class="text-xl block mb-1">${g.emoji}</span>${g.name}
+        </th>`;
+      });
+      
+      headerHTML += `<th class="sticky-header p-4 text-xs font-bold uppercase text-center text-slate-500 bg-slate-50 border-l border-slate-200 shadow-sm min-w-[80px]">${t('thComp')}</th>
+        <th class="sticky-header p-4 text-xs font-bold uppercase text-center text-slate-500 bg-slate-50 border-l border-slate-200 shadow-sm min-w-[80px]">${t('thTotal')}</th>
+        <th class="sticky-header p-4 text-xs font-bold uppercase text-center text-indigo-600 bg-indigo-50/50 border-l border-slate-200 shadow-sm min-w-[80px]">${t('thRate')}</th>
+      </tr>`;
+      thead.innerHTML = headerHTML;
+
+      let bodyHTML = '';
+      const dates = generateDateRange();
+      const locale = state.lang === 'gr' ? 'el-GR' : 'en-US';
+
+      dates.forEach(dateStr => {
+        if (!state.logs[dateStr]) state.logs[dateStr] = {};
+        
+        const dObj = new Date(dateStr);
+        const fDate = dObj.toLocaleDateString(locale, { day: '2-digit', month: '2-digit' });
+        const fDay = dObj.toLocaleDateString(locale, { weekday: 'short' });
+        
+        // Highlight today
+        const isToday = dateStr === new Date().toISOString().split('T')[0];
+        const rowBg = isToday ? 'bg-indigo-50/30' : 'bg-white hover:bg-slate-50';
+
+        bodyHTML += `<tr class="border-b border-slate-100 transition ${rowBg}" id="row-${dateStr}">
+          <td class="sticky-col-1 p-4 font-semibold text-slate-700 bg-inherit group-hover:bg-slate-50">${fDate}</td>
+          <td class="sticky-col-2 p-4 text-sm font-medium text-slate-500 bg-inherit group-hover:bg-slate-50">${fDay}</td>`;
+        
+        state.goals.forEach(g => {
+          const val = state.logs[dateStr][g.id] || '';
+          const bgClass = val === 'YES' ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-inner' : 
+                          val === 'NO' ? 'bg-rose-50 text-rose-700 border-rose-300 shadow-inner' : 
+                          'bg-white border-slate-200 text-slate-400 hover:border-indigo-300';
+
+          bodyHTML += `<td class="p-3 border-l border-slate-100 text-center">
+            <select 
+              onchange="handleLogChange('${dateStr}', '${g.id}', this)" 
+              class="w-full p-2.5 rounded-xl border text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer appearance-none text-center transition-colors ${bgClass}">
+              <option value="" ${val===''?'selected':''}>-</option>
+              <option value="YES" ${val==='YES'?'selected':''}>✅ YES</option>
+              <option value="NO" ${val==='NO'?'selected':''}>❌ NO</option>
+              <option value="NA" ${val==='NA'?'selected':''}>➖ N/A</option>
+            </select>
+          </td>`;
+        });
+        
+        bodyHTML += `<td class="p-4 border-l border-slate-200 text-center font-bold text-emerald-600" id="comp-${dateStr}">-</td>
+          <td class="p-4 border-l border-slate-100 text-center font-bold text-slate-600" id="tot-${dateStr}">-</td>
+          <td class="p-4 border-l border-slate-100 text-center font-extrabold text-indigo-600 bg-indigo-50/20" id="rate-${dateStr}">-</td>
+        </tr>`;
+      });
+      tbody.innerHTML = bodyHTML;
+      
+      dates.forEach(d => calcRowStats(d));
+    }
+
+    function handleLogChange(dateStr, goalId, selectElem) {
+      const val = selectElem.value;
+      state.logs[dateStr][goalId] = val;
+      
+      selectElem.className = `w-full p-2.5 rounded-xl border text-sm font-bold outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer appearance-none text-center transition-colors ` + 
+        (val === 'YES' ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-inner' : 
+         val === 'NO' ? 'bg-rose-50 text-rose-700 border-rose-300 shadow-inner' : 
+         'bg-white border-slate-200 text-slate-400 hover:border-indigo-300');
+
+      calcRowStats(dateStr);
+      updateDashboardStats();
+      saveState();
+    }
+
+    function calcRowStats(dateStr) {
+      let yes = 0, no = 0;
+      state.goals.forEach(g => {
+        const val = state.logs[dateStr][g.id];
+        if (val === 'YES') yes++;
+        if (val === 'NO') no++;
+      });
+      const tot = yes + no;
+      const rate = tot > 0 ? Math.round((yes/tot)*100) : 0;
+      
+      document.getElementById(`comp-${dateStr}`).innerText = tot > 0 ? yes : '-';
+      document.getElementById(`tot-${dateStr}`).innerText = tot > 0 ? tot : '-';
+      document.getElementById(`rate-${dateStr}`).innerText = tot > 0 ? rate + '%' : '-';
+    }
+
+    function updateDashboardStats() {
+      let totalYes = 0, totalNo = 0;
+      let chartLabels = [];
+      let chartData = [];
+      const locale = state.lang === 'gr' ? 'el-GR' : 'en-US';
+      const dates = generateDateRange();
+
+      dates.forEach(date => {
+        let dYes = 0, dNo = 0;
+        state.goals.forEach(g => {
+          const val = state.logs[date][g.id];
+          if (val === 'YES') { dYes++; totalYes++; }
+          if (val === 'NO') { dNo++; totalNo++; }
+        });
+        
+        const dTot = dYes + dNo;
+        chartLabels.push(new Date(date).toLocaleDateString(locale, {day:'numeric', month:'numeric'}));
+        chartData.push(dTot > 0 ? (dYes/dTot*100) : null);
+      });
+
+      const grandTotal = totalYes + totalNo;
+      const overallRate = grandTotal > 0 ? Math.round((totalYes/grandTotal)*100) : 0;
+
+      document.getElementById('kpi-rate').innerText = `${overallRate}%`;
+      document.getElementById('kpi-completed').innerText = totalYes;
+      document.getElementById('kpi-days').innerText = dates.length;
+
+      if (lineChart && lineChart.data) {
+        lineChart.data.labels = chartLabels;
+        lineChart.data.datasets[0].data = chartData;
+        lineChart.update();
+      }
+      if (pieChart && pieChart.data) {
+        pieChart.data.labels = [t('chartLabelYes'), t('chartLabelNo')];
+        pieChart.data.datasets[0].data = [totalYes, totalNo];
+        pieChart.update();
+      }
+    }
+
+    function initCharts() {
+      if(lineChart) lineChart.destroy();
+      if(pieChart) pieChart.destroy();
+
+      const ctxLine = document.getElementById('lineChart');
+      if (!ctxLine) return; // safeguard
+
+      lineChart = new Chart(ctxLine.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [{
+            label: '%',
+            data: [],
+            borderColor: '#4f46e5',
+            backgroundColor: 'rgba(79, 70, 229, 0.1)',
+            borderWidth: 3,
+            tension: 0.4,
+            fill: true,
+            pointBackgroundColor: '#ffffff',
+            pointBorderColor: '#4f46e5',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            spanGaps: true
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          scales: { 
+            y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' }, grid: { color: '#f1f5f9' } }, 
+            x: { grid: { display: false } } 
+          },
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.raw !== null ? Math.round(ctx.raw) + '%' : 'N/A' } } }
+        }
+      });
+
+      const ctxPie = document.getElementById('pieChart');
+      pieChart = new Chart(ctxPie.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          labels: [],
+          datasets: [{ data: [0,0], backgroundColor: ['#10b981', '#f43f5e'], borderWidth: 0, hoverOffset: 5 }]
+        },
+        options: { 
+          responsive: true, maintainAspectRatio: false, cutout: '75%', 
+          plugins: { legend: { position: 'bottom', labels: {font:{family:'Inter'}, padding: 20} } } 
+        }
+      });
+    }
+
+    function addDashboardGoal() {
+      const input = document.getElementById('dashNewGoalInput');
+      const text = input.value.trim();
+      if (!text) return alert(t('alerts').emptyGoal);
+      
+      const newGoal = { id: 'g_' + Date.now(), name: text, emoji: detectEmoji(text) };
+      state.goals.push(newGoal);
+      saveState();
+      
+      input.value = '';
+      renderTable(); // Re-render table with new column
+      updateDashboardStats();
+    }
+
+    function extendPeriod(days) {
+      const end = new Date(state.endDate);
+      end.setDate(end.getDate() + days);
+      state.endDate = end.toISOString().split('T')[0];
+      saveState();
+      
+      // Update UI
+      const locale = state.lang === 'gr' ? 'el-GR' : 'en-US';
+      const fStart = new Date(state.startDate).toLocaleDateString(locale, { day:'numeric', month:'short', year:'numeric'});
+      const fEnd = new Date(state.endDate).toLocaleDateString(locale, { day:'numeric', month:'short', year:'numeric'});
+      document.getElementById('dash-period-dates').innerText = `${fStart} - ${fEnd}`;
+      
+      renderTable();
+      updateDashboardStats();
+    }
+
+    function startOver() {
+      if(confirm(t('alerts').resetWarn)) {
+        logout();
+      }
+    }
+
+    function logout() {
+      localStorage.removeItem('dailyGoalsAppPro');
+      location.reload();
+    }
+
+    // Run when DOM is ready
+    window.onload = initApp;
+  </script>
+</body>
+</html>
